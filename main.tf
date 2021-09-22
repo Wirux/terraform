@@ -165,7 +165,7 @@ resource "aws_network_interface" "main" {
 
 }
 
-resource "aws_eip" "one" {
+resource "aws_eip" "main" {
   vpc                       = true
   network_interface         = aws_network_interface.main.id
   associate_with_private_ip = "10.0.1.50"
