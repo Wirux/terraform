@@ -25,14 +25,7 @@ resource "aws_instance" "main" {
     device_index         = 0
     network_interface_id = aws_network_interface.main.id
   }
-  user_data = <<-EOF
-                #!/bin/bash
-                sudo apt update -y
-                sudo apt install apache2 -y
-                sudo systemctl start apache2
-                sudo bash -c 'echo your very first web server > /var/www/html/index.html'
-                EOF
-
+  user_data = file("userdata.sh")
   tags = {
     Name = "vpc"
   }
