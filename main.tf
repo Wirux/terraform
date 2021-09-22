@@ -1,15 +1,30 @@
+/*
+Working ssh.
+*/
+
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 3.27"
+    }
+  }
+
+  required_version = ">= 0.14.9"
+}
+
 provider "aws" {
-  region     = "eu-central-1"
+  region                  = "eu-central-1"
   shared_credentials_file = "/Users/tf_user/.aws/credentials"
 }
 resource "aws_instance" "main" {
   ami           = "ami-05f7491af5eef733a"
   instance_type = "t2.micro"
-  key_name = "main"
+  key_name      = "Main"
   network_interface {
-     device_index         = 0
-     network_interface_id = aws_network_interface.main.id
-   }
+    device_index         = 0
+    network_interface_id = aws_network_interface.main.id
+  }
   user_data = <<-EOF
                 #!/bin/bash
                 sudo apt update -y
@@ -19,7 +34,7 @@ resource "aws_instance" "main" {
                 EOF
 
   tags = {
-    Name = "changeKey"
+    Name = "vpc"
   }
 }
 
@@ -52,13 +67,22 @@ resource "aws_route_table" "main" {
 
   route = [
     {
-      cidr_block = "10.0.1.0/24"
-      gateway_id = aws_internet_gateway.gw.id
+      cidr_block                 = "0.0.0.0/0"
+      egress_only_gateway_id     = ""
+      gateway_id                 = aws_internet_gateway.gw.id
+      instance_id                = ""
+      ipv6_cidr_block            = ""
+      nat_gateway_id             = ""
+      network_interface_id       = ""
+      transit_gateway_id         = ""
+      vpc_peering_connection_id  = ""
+      carrier_gateway_id         = ""
+      destination_prefix_list_id = ""
+      local_gateway_id           = ""
+      vpc_endpoint_id            = ""
+
+
     },
-    {
-      ipv6_cidr_block        = "::/0"
-      egress_only_gateway_id = aws_egress_only_internet_gateway.main.id
-    }
   ]
 
   tags = {
@@ -73,44 +97,64 @@ resource "aws_route_table_association" "a" {
 
 resource "aws_security_group" "main" {
   name        = "main"
-  description = "Allow TLS and SSH inbound traffic"
+  description = "Allow web traffics"
   vpc_id      = aws_vpc.main.id
 
   ingress = [
+
     {
-      description      = "TLS from VPC"
+      description      = "HTTPS"
+      from_port        = 443
+      to_port          = 443
+      protocol         = "tcp"
+      cidr_blocks      = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+
+    {
+      description      = "SSH"
+      from_port        = 22
+      to_port          = 22
+      protocol         = "tcp"
+      cidr_blocks      = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "HTTP"
       from_port        = 80
       to_port          = 80
       protocol         = "tcp"
       cidr_blocks      = ["0.0.0.0/0"]
-      ipv6_cidr_blocks = [aws_vpc.main.ipv6_cidr_block]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
     }
   ]
 
-#  ingress = [
-#    {
-#      description      = "SSH from VPC"
-#      from_port        = 22
-#      to_port          = 22
-#      protocol         = "tcp"
-#      cidr_blocks      = ["0.0.0.0/0"]
-#      ipv6_cidr_blocks = [aws_vpc.main.ipv6_cidr_block]
-#    }
-#  ]
 
-
-#  egress = [
-#    {
-#      from_port        = 0
-#      to_port          = 0
-#      protocol         = "-1"
-#      cidr_blocks      = ["0.0.0.0/0"]
-#      ipv6_cidr_blocks = ["::/0"]
-#    }
-#  ]
+  egress = [
+    {
+      description      = "rest"
+      from_port        = 0
+      to_port          = 0
+      protocol         = "-1"
+      cidr_blocks      = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = ["::/0"]
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    }
+  ]
 
   tags = {
-    Name = "allow_tls"
+    Name = "main"
   }
 }
 
@@ -125,5 +169,5 @@ resource "aws_eip" "one" {
   vpc                       = true
   network_interface         = aws_network_interface.main.id
   associate_with_private_ip = "10.0.1.50"
-  depends_on = [aws_internet_gateway.gw]
+  depends_on                = [aws_internet_gateway.gw]
 }
