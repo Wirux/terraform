@@ -32,7 +32,7 @@ resource "aws_instance" "main" {
 }
 
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.1.0/24"
+  cidr_block = var.vpc_cidr
   tags = {
     Name = "main"
   }
@@ -40,10 +40,10 @@ resource "aws_vpc" "main" {
 
 resource "aws_subnet" "main" {
   vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.1.0/24"
+  cidr_block = var.subnets[0].ip
 
   tags = {
-    Name = "Main"
+    Name = var.subnets[0].name
   }
 }
 
@@ -153,7 +153,7 @@ resource "aws_security_group" "main" {
 
 resource "aws_network_interface" "main" {
   subnet_id       = aws_subnet.main.id
-  private_ips     = ["10.0.1.100"]
+  private_ips     = [var.eip]
   security_groups = [aws_security_group.main.id]
 
 }
@@ -161,7 +161,24 @@ resource "aws_network_interface" "main" {
 resource "aws_eip" "main" {
   vpc                       = true
   network_interface         = aws_network_interface.main.id
-  associate_with_private_ip = "10.0.1.100"
+  associate_with_private_ip = var.eip
   depends_on = [aws_internet_gateway.gw,
-  aws_instance.main]
+                aws_instance.main]
+}
+
+output "pubip" {
+  value       = aws_eip.main.public_ip
+  sensitive   = false
+  description = "Public server IP"
+  depends_on  = []
+}
+
+variable eip {
+  description = "eip"
+}
+variable vpc_cidr {
+  description = "vpc_cidr"
+}
+variable subnets {
+  description = "description"
 }
