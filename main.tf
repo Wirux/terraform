@@ -21,14 +21,29 @@ resource "aws_instance" "main" {
   ami           = "ami-05f7491af5eef733a"
   instance_type = "t2.micro"
   key_name      = "Main"
+#  depends_on = [aws_eip.main, aws_instance.main]
   network_interface {
     device_index         = 0
     network_interface_id = aws_network_interface.main.id
   }
+    provisioner "file" {
+    source      = "compose.yaml"
+    destination = "/home/ubuntu/docker-compose.yaml"
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = "${file("~/Downloads/Main.pem")}"
+      host        = "${aws_eip.main.public_ip}"
+#      host        = "${self.public_ip}"
+#      host        = self.public_ip
+    }
+    }
   user_data = file("userdata.sh")
   tags = {
     Name = "vpc"
   }
+  depends_on = [aws_eip.main]
 }
 
 resource "aws_vpc" "main" {
@@ -120,8 +135,8 @@ resource "aws_security_group" "main" {
     },
     {
       description      = "HTTP"
-      from_port        = 80
-      to_port          = 80
+      from_port        = 8080
+      to_port          = 8080
       protocol         = "tcp"
       cidr_blocks      = ["0.0.0.0/0"]
       ipv6_cidr_blocks = []
@@ -163,14 +178,15 @@ resource "aws_eip" "main" {
   network_interface         = aws_network_interface.main.id
   associate_with_private_ip = var.eip
   depends_on = [aws_internet_gateway.gw,
-                aws_instance.main]
+  #              aws_instance.main
+                ]
 }
 
 output "pubip" {
   value       = aws_eip.main.public_ip
   sensitive   = false
   description = "Public server IP"
-  depends_on  = []
+#  depends_on  = []
 }
 
 variable eip {
